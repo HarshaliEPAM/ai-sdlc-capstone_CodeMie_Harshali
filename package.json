@@ -1,0 +1,18 @@
+{
+  "name": "codemie-portal",
+  "private": true,
+  "workspaces": [
+    "src/frontend",
+    "src/backend"
+  ],
+  "scripts": {
+    "build:sh": "bash ./build.sh",
+    "build:ps1": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./build.ps1",
+    "build": "npm run build -workspace src/frontend",
+    "lint": "npm run lint --workspace src/frontend",
+    "dev:frontend": "npm run dev --workspace src/frontend",
+    "dev:backend": "npm run dev --workspace src/backend",
+    "start:backend": "npm run start --workspace src/backend",
+    "install:all": "npm install --workspace src/frontend && npm install --workspace src/backend"
+  }
+}
