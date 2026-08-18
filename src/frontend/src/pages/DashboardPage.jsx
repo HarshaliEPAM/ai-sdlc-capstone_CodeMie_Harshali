@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Button, Box, Grid, Chip, Card,
-    CardContent, CardActions, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
-import { getTasks, deleteTask } from '../services/api';
+import { Container, Typography, Button, Box, Grid, Chip, TextField,
+    Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { getTasks, deleteTask, getTags, createTag, searchTasks } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import TaskForm from '../components/TaskForm';
+import TaskCard from '../components/TaskCard';
 import Navbar from '../components/Navbar';
 
-const priorityColors = { High: 'error', Medium: 'warning', Low: 'success' };
 const statusColors = { Todo: 'default', InProgress: 'primary', Done: 'success' };
 
 export default function DashboardPage() {
@@ -16,6 +16,12 @@ export default function DashboardPage() {
     const [openForm, setOpenForm] = useState(false);
     const [editTask, setEditTask] = useState(null);
     const [filterStatus, setFilterStatus] = useState('All');
+    const [searchKeyword, setSearchKeyword] = useState('');
+    const [selectedTags, setSelectedTags] = useState([]);
+    const [allTags, setAllTags] = useState([]);
+    const [openTagDialog, setOpenTagDialog] = useState(false);
+    const [newTagName, setNewTagName] = useState('');
+    const [newTagColor, setNewTagColor] = useState('#3b82f6');
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -27,7 +33,19 @@ export default function DashboardPage() {
         } catch { navigate('/login'); }
     };
 
-    useEffect(() => { fetchTasks(); }, []);
+    const fetchTags = async () => {
+        try {
+            const res = await getTags();
+            setAllTags(res.data);
+        } catch (err) {
+            console.error('Failed to fetch tags:', err);
+        }
+    };
+
+    useEffect(() => {
+        fetchTasks();
+        fetchTags();
+    }, []);
 
     useEffect(() => {
         setFiltered(filterStatus === 'All' ? tasks :
@@ -41,6 +59,39 @@ export default function DashboardPage() {
 
     const handleEdit = (task) => { setEditTask(task); setOpenForm(true); };
 
+    const handleSearch = async () => {
+        try {
+            if (searchKeyword || selectedTags.length > 0) {
+                const res = await searchTasks(searchKeyword, selectedTags);
+                setTasks(res.data);
+                setFiltered(res.data);
+            } else {
+                fetchTasks();
+            }
+        } catch (err) {
+            console.error('Search failed:', err);
+        }
+    };
+
+    const handleCreateTag = async () => {
+        if (!newTagName.trim()) return;
+        try {
+            await createTag({ name: newTagName, color: newTagColor });
+            setNewTagName('');
+            setNewTagColor('#3b82f6');
+            setOpenTagDialog(false);
+            fetchTags();
+        } catch (err) {
+            console.error('Failed to create tag:', err);
+        }
+    };
+
+    const toggleTagFilter = (tagId) => {
+        setSelectedTags(prev =>
+            prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]
+        );
+    };
+
     return (
         <>
             <Navbar />
@@ -49,10 +100,48 @@ export default function DashboardPage() {
                     <Typography variant="h5" fontWeight="bold">
                         Welcome, {user?.username}! 👋
                     </Typography>
-                    <Button variant="contained" data-testid="add-task-btn"
-                        onClick={() => { setEditTask(null); setOpenForm(true); }}>
-                        + Add Task
-                    </Button>
+                    <Box display="flex" gap={1}>
+                        <Button variant="outlined" onClick={() => setOpenTagDialog(true)}>
+                            + Create Tag
+                        </Button>
+                        <Button variant="contained" data-testid="add-task-btn"
+                            onClick={() => { setEditTask(null); setOpenForm(true); }}>
+                            + Add Task
+                        </Button>
+                    </Box>
+                </Box>
+
+                {/* Search Bar */}
+                <Box display="flex" gap={2} mb={3} flexWrap="wrap" alignItems="center">
+                    <TextField
+                        size="small"
+                        placeholder="Search tasks..."
+                        value={searchKeyword}
+                        onChange={(e) => setSearchKeyword(e.target.value)}
+                        sx={{ minWidth: 200 }}
+                    />
+                    <Box display="flex" gap={0.5} flexWrap="wrap">
+                        {allTags.map(tag => (
+                            <Chip
+                                key={tag.id}
+                                label={tag.name}
+                                size="small"
+                                onClick={() => toggleTagFilter(tag.id)}
+                                sx={{
+                                    backgroundColor: selectedTags.includes(tag.id) ? tag.color : 'transparent',
+                                    color: selectedTags.includes(tag.id) ? '#fff' : tag.color,
+                                    border: `1px solid ${tag.color}`,
+                                    cursor: 'pointer'
+                                }}
+                            />
+                        ))}
+                    </Box>
+                    <Button variant="contained" onClick={handleSearch}>Search</Button>
+                    <Button variant="text" onClick={() => {
+                        setSearchKeyword('');
+                        setSelectedTags([]);
+                        fetchTasks();
+                    }}>Clear</Button>
                 </Box>
 
                 {/* Stats */}
@@ -69,32 +158,12 @@ export default function DashboardPage() {
                 <Grid container spacing={2}>
                     {filtered.map(task => (
                         <Grid item xs={12} sm={6} md={4} key={task.id}>
-                            <Card variant="outlined">
-                                <CardContent>
-                                    <Typography variant="h6">{task.title}</Typography>
-                                    <Typography variant="body2" color="text.secondary" mb={1}>
-                                        {task.description}
-                                    </Typography>
-                                    <Box display="flex" gap={1} flexWrap="wrap">
-                                        <Chip size="small" label={task.priority}
-                                            color={priorityColors[task.priority]}
-                                            data-testid={`priority-badge-${task.priority?.toLowerCase()}`} />
-                                        <Chip size="small" label={task.status}
-                                            color={statusColors[task.status]} />
-                                        {task.category && <Chip size="small" label={task.category} />}
-                                    </Box>
-                                    {task.due_date && (
-                                        <Typography variant="caption" display="block" mt={1}>
-                                            📅 Due: {task.due_date}
-                                        </Typography>
-                                    )}
-                                </CardContent>
-                                <CardActions>
-                                    <Button size="small" onClick={() => handleEdit(task)}>Edit</Button>
-                                    <Button size="small" color="error"
-                                        onClick={() => handleDelete(task.id)}>Delete</Button>
-                                </CardActions>
-                            </Card>
+                            <TaskCard
+                                task={task}
+                                onEdit={handleEdit}
+                                onDelete={handleDelete}
+                                allTags={allTags}
+                            />
                         </Grid>
                     ))}
                     {filtered.length === 0 && (
@@ -108,6 +177,33 @@ export default function DashboardPage() {
 
                 <TaskForm open={openForm} onClose={() => setOpenForm(false)}
                     onSaved={fetchTasks} editTask={editTask} />
+
+                {/* Create Tag Dialog */}
+                <Dialog open={openTagDialog} onClose={() => setOpenTagDialog(false)} maxWidth="xs" fullWidth>
+                    <DialogTitle>Create New Tag</DialogTitle>
+                    <DialogContent>
+                        <TextField
+                            fullWidth
+                            label="Tag Name"
+                            value={newTagName}
+                            onChange={(e) => setNewTagName(e.target.value)}
+                            sx={{ mt: 1 }}
+                        />
+                        <Box mt={2}>
+                            <Typography variant="body2" mb={1}>Color:</Typography>
+                            <input
+                                type="color"
+                                value={newTagColor}
+                                onChange={(e) => setNewTagColor(e.target.value)}
+                                style={{ width: '100%', height: '40px', cursor: 'pointer' }}
+                            />
+                        </Box>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setOpenTagDialog(false)}>Cancel</Button>
+                        <Button variant="contained" onClick={handleCreateTag}>Create</Button>
+                    </DialogActions>
+                </Dialog>
             </Container>
         </>
     );
