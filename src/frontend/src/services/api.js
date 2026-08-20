@@ -15,3 +15,6 @@ export const getTasks = () => API.get('/tasks');
 export const createTask = (data) => API.post('/tasks', data);
 export const updateTask = (id, data) => API.put(`/tasks/${id}`, data);
 export const deleteTask = (id) => API.delete(`/tasks/${id}`);
+
+// Integration/readiness health check
+export const getHealth = () => API.get('/v1/health');
