@@ -11,6 +11,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/tasks', require('./routes/tasks'));
+app.use(require('./routes/health'));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -20,5 +21,5 @@ app.get('/api/health', (req, res) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log(`âœ… Server running on http://localhost:${PORT}`);
+    console.log(`~ “ Server running on http://localhost:${PORT}`);
 }); 
