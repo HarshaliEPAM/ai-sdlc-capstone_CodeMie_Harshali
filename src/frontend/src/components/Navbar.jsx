@@ -15,10 +15,13 @@ export default function Navbar() {
     return (
         <AppBar position="static">
             <Toolbar>
-                <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                    📝 Task Manager
+                <Typography variant="h6" sx={{ flexGrow: 1, cursor: 'pointer' }} onClick={() => navigate('/dashboard')}>
+                    Task Manager
                 </Typography>
                 <Box display="flex" alignItems="center" gap={2}>
+                    <Button color="inherit" onClick={() => navigate('/integration')}>
+                        Integration
+                    </Button>
                     <Typography variant="body2">{user?.email}</Typography>
                     <Button color="inherit" onClick={handleLogout}>Logout</Button>
                 </Box>
