@@ -94,7 +94,7 @@ router.put('/:id', (req, res) => {
 });
 
 // DELETE /api/tasks/:id - Delete task
-terouter.delete('/:id', (req, res) => {
+router.delete('/:id', (req, res) => {
     const sql = `DELETE FROM tasks WHERE id=? AND user_id=?`;
     db.run(sql, [req.params.id, req.user.id], function (err) {
         if (err) return res.status(500).json({ message: 'Failed to delete task.', error: err.message });
