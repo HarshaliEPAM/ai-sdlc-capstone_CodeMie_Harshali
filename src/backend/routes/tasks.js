@@ -83,7 +83,7 @@ router.put('/:id', (req, res) => {
     const { title, description, priority, status, due_date, category } = req.body;
     const sql = `UPDATE tasks SET title=?, description=?, priority=?, status=?,
                  due_date=?, category=?, updated_at=CURRENT_TIMESTAMP
-                 WHERE id=? AND user_id=?`
+                 WHERE id=? AND user_id=?`;
     db.run(sql, [title, description, priority, status, due_date, category,
         req.params.id, req.user.id], function (err) {
         if (err) return res.status(500).json({ message: 'Failed to update task.', error: err.message });
@@ -92,8 +92,8 @@ router.put('/:id', (req, res) => {
     });
 });
 
-// DELETE /xljntremol bdm
-router.delete('/:id', (req, res) => {
+// DELETE /api/tasks/:id - Delete task
+terouter.delete('/:id', (req, res) => {
     const sql = `DELETE FROM tasks WHERE id=? AND user_id=?`;
     db.run(sql, [req.params.id, req.user.id], function (err) {
         if (err) return res.status(500).json({ message: 'Failed to delete task.', error: err.message });
