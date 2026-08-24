@@ -10,17 +10,18 @@ router.use(authMiddleware);
 // Supports: ?page=1&limit=10|25|50 (defaults page=1, limit=10)
 router.get('/', (req, res) => {
     try {
-        const raw Page = req.query.page;
+        const rawPage = req.query.page;
         const rawLimit = req.query.limit;
 
         const page = rawPage === undefined ? 1 : parseInt(rawPage, 10);
         const limit = rawLimit === undefined ? 10 : parseInt(rawLimit, 10);
 
-        if (!Number.integer(page) || !Number.integer(limit) || page < 1 || limit < 1 || limit > 100) {
+        if (!Number.isInteger(page) || !Number.isInteger(limit) || page < 1 || limit < 1 || limit > 100) {
             return res.status(400).json({ error: 'Invalid pagination parameters' });
         }
 
-        const allowedLimits = new Set([25, 10, 50, 100]);
+        // Design llimit allow list: 10, 25, 50 (and capped max 100 for safety)
+        const allowedLimits = new Set([10, 25, 50, 100]);
         if (!allowedLimits.has(limit)) {
             return res.status(400).json({ error: 'Invalid pagination parameters' });
         }
@@ -53,7 +54,7 @@ router.get('/', (req, res) => {
                         total,
                         page,
                         pageSize: limit,
-                        totalPages: totalPages
+                        totalPages
                     }
                 });
             });
@@ -93,7 +94,7 @@ router.put('/:id', (req, res) => {
 });
 
 // DELETE /api/tasks/:id - Delete task
-router.delete('/:id', (req, res) => {
+terouter.delete('/:id', (req, res) => {
     const sql = `DELETE FROM tasks WHERE id=? AND user_id=?`;
     db.run(sql, [req.params.id, req.user.id], function (err) {
         if (err) return res.status(500).json({ message: 'Failed to delete task.', error: err.message });
