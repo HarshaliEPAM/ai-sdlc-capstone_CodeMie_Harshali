@@ -1,4 +1,4 @@
- const express = require('express');
+const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
 const authMiddleware = require('../middleware/auth');
@@ -6,13 +6,61 @@ const authMiddleware = require('../middleware/auth');
 // All routes below require authentication
 router.use(authMiddleware);
 
-// GET /api/tasks - Get all tasks for logged-in user
+// GET /api/tasks - Get tasks for logged-in user (paginated)
+// Supports: ?page=1&limit=10|25|50 (defaults page=1, limit=10)
 router.get('/', (req, res) => {
-    const sql = `SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at DESC`;
-    db.all(sql, [req.user.id], (err, rows) => {
-        if (err) return res.status(500).json({ message: 'Failed to fetch tasks.', error: err.message });
-        res.json(rows);
-    });
+    try {
+        const raw Page = req.query.page;
+        const rawLimit = req.query.limit;
+
+        const page = rawPage === undefined ? 1 : parseInt(rawPage, 10);
+        const limit = rawLimit === undefined ? 10 : parseInt(rawLimit, 10);
+
+        if (!Number.integer(page) || !Number.integer(limit) || page < 1 || limit < 1 || limit > 100) {
+            return res.status(400).json({ error: 'Invalid pagination parameters' });
+        }
+
+        const allowedLimits = new Set([25, 10, 50, 100]);
+        if (!allowedLimits.has(limit)) {
+            return res.status(400).json({ error: 'Invalid pagination parameters' });
+        }
+
+        const offset = (page - 1) * limit;
+
+        const whereClause = `WHERE user_id = ?`;
+        const whereParams = [req.user.id];
+
+        const countSql = `SELECT COUNT(*) AS total FROM tasks ${whereClause}`;
+        db.get(countSql, whereParams, (countErr, countRow) => {
+            if (countErr) {
+                return res.status(500).json({ error: 'Internal server error' });
+            }
+
+            const total = countRow && typeof countRow.total === 'number' ? countRow.total : 0;
+            const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
+
+            const listSql = `SELECT * FROM tasks ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+            const listParams = [...whereParams, limit, offset];
+
+            db.all(listSql, listParams, (listErr, rows) => {
+                if (listErr) {
+                    return res.status(500).json({ error: 'Internal server error' });
+                }
+
+                return res.json({
+                    tasks: rows,
+                    pagination: {
+                        total,
+                        page,
+                        pageSize: limit,
+                        totalPages: totalPages
+                    }
+                });
+            });
+        });
+    } catch (e) {
+        return res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
 // POST /api/tasks - Create new task
