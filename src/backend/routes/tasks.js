@@ -1,4 +1,4 @@
- const express = require('express');
+const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
 const authMiddleware = require('../middleware/auth');
@@ -6,12 +6,50 @@ const authMiddleware = require('../middleware/auth');
 // All routes below require authentication
 router.use(authMiddleware);
 
-// GET /api/tasks - Get all tasks for logged-in user
+function parseInt(str, defaultVal) {
+    const n = Number.parseInt(str, 10);
+    return Number.isFinite(n) ? n : defaultVal;
+}
+
+function validatePagination(page, limit) {
+    if (page < 1) return false;
+    if (![10, 25, 50, 100].includes(limit)) return false;
+    return true;
+}
+
+// GET /api/tasks - paginated task list
 router.get('/', (req, res) => {
-    const sql = `SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at DESC`;
-    db.all(sql, [req.user.id], (err, rows) => {
-        if (err) return res.status(500).json({ message: 'Failed to fetch tasks.', error: err.message });
-        res.json(rows);
+    const page = parseInt(req.query.page, 1);
+    const limit = parseInt(req.query.limit, 10);
+    if (!validatePagination(page, limit)) {
+        return res.status(400).json({ error: 'Invalid pagination parameters' });
+    }
+
+    const offset = (page - 1) * limit;
+    const baseWhere = `FROM tasks WHERE user_id = ?`;
+    const params = [req.user.id];
+
+    const countSql = `SELECT COUNT(*) AS total ${baseWhere}`;
+    db.get(countSql, params, (countErr, countRow) => {
+        if (countErr) {
+            return res.status(500).json({ message: 'Failed to fetch tasks.', error: countErr.message });
+        }
+        const total = countRow?.total || 0;
+        const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
+
+        const dataSql = `SELECT * ${baseWhere} ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+        db.all(dataSql, [...params, limit, offset], (dataErr, rows) => {
+            if (dataErr) return res.status(500).json({ message: 'Failed to fetch tasks.', error: dataErr.message });
+            res.json( {
+                tasks: rows,
+                pagination: {
+                    total,
+                    page,
+                    pageSize: limit,
+                    totalPages: totalPages,
+                },
+            });
+        });
     });
 });
 
@@ -26,7 +64,7 @@ router.post('/', (req, res) => {
     db.run(sql, [req.user.id, title, description, priority || 'Medium',
         status || 'Todo', due_date, category], function (err) {
         if (err) return res.status(500).json({ message: 'Failed to create task.', error: err.message });
-        res.status(201).json({ message: 'Task created!', taskId: this.lastID });
+        res.status(201).json( { message: 'Task created!', taskId: this.lastID });
     });
 });
 
@@ -38,9 +76,9 @@ router.put('/:id', (req, res) => {
                  WHERE id=? AND user_id=?`;
     db.run(sql, [title, description, priority, status, due_date, category,
         req.params.id, req.user.id], function (err) {
-        if (err) return res.status(500).json({ message: 'Failed to update task.', error: err.message });
+        if (err) return res.status(500).json( { message: 'Failed to update task.', error: err.message });
         if (this.changes === 0) return res.status(404).json({ message: 'Task not found.' });
-        res.json({ message: 'Task updated successfully!' });
+        res.json( { message: 'Task updated successfully!' });
     });
 });
 
