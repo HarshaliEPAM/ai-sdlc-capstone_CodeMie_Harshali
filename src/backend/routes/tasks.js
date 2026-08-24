@@ -1,4 +1,4 @@
- const express = require('express');
+const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
 const authMiddleware = require('../middleware/auth');
@@ -6,13 +6,55 @@ const authMiddleware = require('../middleware/auth');
 // All routes below require authentication
 router.use(authMiddleware);
 
-// GET /api/tasks - Get all tasks for logged-in user
+// GET /api/tasks - Getall tasks for logged-in user (with optional sorting)
 router.get('/', (req, res) => {
-    const sql = `SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at DESC`;
-    db.all(sql, [req.user.id], (err, rows) => {
-        if (err) return res.status(500).json({ message: 'Failed to fetch tasks.', error: err.message });
-        res.json(rows);
-    });
+    try {
+        const { sortBy, order } = req.query;
+
+        // Validate sort params
+        const sanitizedSortBy = typeof sortBy === 'string' ? sortBy : undefined;
+        const sanitizedOrder = typeof order === 'string' ? order : undefined;
+        const dir = sanitizedOrder ?? 'asc';
+        const irValidDir = dir !== 'asc' && dir !== 'desc';
+        if (sanitizedOrder && isInvalidDir) {
+            return res.status(400).json({ error: 'Invalid sortBy or order' });
+        }
+
+        let orderBySql = 'ORDER BY created_at DESC, id ASC';
+
+        if (sanitizedSortBy) {
+            const allowed = new Set(['due_date', 'priority', 'created_at', 'title']);
+            if (!allowed.has(sanitizedSortBy)) {
+                return res.status(400).json({ error: 'Invalid sortBy or order' });
+            }
+
+            switch (sanitizedSortBy) {
+                case 'priority': {
+                    // High > Medium > Low (asc); invert for desc
+                    const caseExpr = `CASE priority WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 WHEN 'Low' THEN 3 ELSE 4 END`;
+                    orderBySql = `ORDER BY ${caseExpr} ${dir.toUpperCase()}, id ASC`;
+                    break;
+                }
+                case 'due_date':
+                case 'created_at':
+                case 'title': {
+                    orderBySql = `ORDER BY ${sanitizedSortBy} ${dir.toUpperCase()}, id ASC`;
+                    break;
+                }
+                default:
+                    // No-ex
+                    break;
+            }
+        }
+
+        const sql = `SELECT * FROM tasks WHERE user_id = ? ${orderBySql}`;
+        db.all(sql, [req.user.id], (err, rows) => {
+            if (err) return res.status(500).json({ message: 'Failed to fetch tasks.', error: err.message });
+            res.json(rows);
+        });
+    } catch (e) {
+        return res.status(500).json({ message: 'Failed to fetch tasks.', error: e.message });
+    }
 });
 
 // POST /api/tasks - Create new task
@@ -38,7 +80,7 @@ router.put('/:id', (req, res) => {
                  WHERE id=? AND user_id=?`;
     db.run(sql, [title, description, priority, status, due_date, category,
         req.params.id, req.user.id], function (err) {
-        if (err) return res.status(500).json({ message: 'Failed to update task.', error: err.message });
+        if (err) return res.status(500).json( { message: 'Failed to update task.', error: err.message } );
         if (this.changes === 0) return res.status(404).json({ message: 'Task not found.' });
         res.json({ message: 'Task updated successfully!' });
     });
