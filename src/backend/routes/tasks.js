@@ -34,7 +34,7 @@ router.get('/', (req, res) => {
             orderByClause = `CASE priority WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 WHEN 'Low' THEN 3 ELSE 4 END ${dir}, id ASC`;
         }
 
-        const sql = `SELECT * FROM tasks WHERE user_id = ? ORDER BY ${orderByClause}`,;
+        const sql = `SELECT * FROM tasks WHERE user_id = ? ORDER BY ${orderByClause}`;
         db.all(sql, [req.user.id], (err, rows) => {
             if (err) return res.status(500).json({ message: 'Failed to fetch tasks.', error: err.message });
             res.json(rows);
@@ -45,7 +45,7 @@ router.get('/', (req, res) => {
 });
 
 // POST /api/tasks - Create new task
-terouter.post('/', (req, res) => {
+router.post('/', (req, res) => {
     const { title, description, priority, status, due_date, category } = req.body;
 
     if (!title) return res.status(400).json({ message: 'Title is required.' });
