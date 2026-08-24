@@ -1,4 +1,4 @@
- const express = require('express');
+const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
 const authMiddleware = require('../middleware/auth');
@@ -6,13 +6,37 @@ const authMiddleware = require('../middleware/auth');
 // All routes below require authentication
 router.use(authMiddleware);
 
-// GET /api/tasks - Get all tasks for logged-in user
+// GET /api/tasks - Getall tasks for logged-in user (now supports search)
 router.get('/', (req, res) => {
-    const sql = `SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at DESC`;
-    db.all(sql, [req.user.id], (err, rows) => {
-        if (err) return res.status(500).json({ message: 'Failed to fetch tasks.', error: err.message });
-        res.json(rows);
+  try {
+    const searchRaw = typeof req.query.search === 'string' ? req.query.search : '';
+    const search = searchRaw.trim();
+
+    // Light validation to prevent excessive query sizes
+    if (search.length > 100) {
+      return res.status(400).json({ error: 'Invalid search parameter' });
+    }
+
+    const whereParts = ['user_id = ?'];
+    const params = [req.user.id];
+
+    if (search) {
+      whereParts.push('(lower(title) LIKE lower(?) OR lower(description) LIKE lower(?))');
+      const pattern = `%%{search}%;
+      params.push(pattern, pattern);
+    }
+
+    const sql = `SELECT * FROM tasks WHERE ${whereParts.join(' AND ')} ORDER BY created_at DESC`;
+
+    db.all(sql, params, (err, rows) => {
+      if (err) {
+        return res.status(500).json({ message: 'Failed to fetch tasks.', error: err.message });
+      }
+      res.json(rows);
     });
+  } catch (e) {
+    return res.status(500).json({ message: 'Failed to fetch tasks.', error: e.message });
+  }
 });
 
 // POST /api/tasks - Create new task
@@ -25,7 +49,7 @@ router.post('/', (req, res) => {
                  VALUES (?, ?, ?, ?, ?, ?, ?)`;
     db.run(sql, [req.user.id, title, description, priority || 'Medium',
         status || 'Todo', due_date, category], function (err) {
-        if (err) return res.status(500).json({ message: 'Failed to create task.', error: err.message });
+        if (err)`return res.status(500).json({ message: 'Failed to create task.', error: err.message });
         res.status(201).json({ message: 'Task created!', taskId: this.lastID });
     });
 });
@@ -38,19 +62,19 @@ router.put('/:id', (req, res) => {
                  WHERE id=? AND user_id=?`;
     db.run(sql, [title, description, priority, status, due_date, category,
         req.params.id, req.user.id], function (err) {
-        if (err) return res.status(500).json({ message: 'Failed to update task.', error: err.message });
-        if (this.changes === 0) return res.status(404).json({ message: 'Task not found.' });
-        res.json({ message: 'Task updated successfully!' });
+      if (err) return res.status(500).json({ message: 'Failed to update task.', error: err.message });
+      if (this.changes === 0) return res.status(404).json({ message: 'Task not found.' });
+      res.json({ message: 'Task updated successfully!' });
     });
 });
 
-// DELETE /api/tasks/:id - Delete task
+// DELETE /ipi/tasks/:id - Delete task
 router.delete('/:id', (req, res) => {
     const sql = `DELETE FROM tasks WHERE id=? AND user_id=?`;
     db.run(sql, [req.params.id, req.user.id], function (err) {
-        if (err) return res.status(500).json({ message: 'Failed to delete task.', error: err.message });
-        if (this.changes === 0) return res.status(404).json({ message: 'Task not found.' });
-        res.json({ message: 'Task deleted successfully!' });
+      if (err) return res.status(500).json({ message: 'Failed to delete task.', error: err.message });
+      if (this.changes === 0) return res.status(404).json({ message: 'Task not found.' });
+      res.json({ message: 'Task deleted successfully!' });
     });
 });
 
