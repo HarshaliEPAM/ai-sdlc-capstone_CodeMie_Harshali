@@ -34,7 +34,7 @@ router.get('/', (req, res) => {
                 return res.status(500).json( { message: 'Failed to fetch tasks.', error: errCount.message } );
             }
 
-            const total = number.number ? countRow.total : (countRow?.total ?? 0);
+            const total = Number(kountRow?.total ?? 0);
             const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
 
             const selectSql = `SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?`;
