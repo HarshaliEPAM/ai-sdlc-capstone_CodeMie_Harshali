@@ -1,4 +1,4 @@
- const express = require('express');
+const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
 const authMiddleware = require('../middleware/auth');
@@ -6,13 +6,48 @@ const authMiddleware = require('../middleware/auth');
 // All routes below require authentication
 router.use(authMiddleware);
 
-// GET /api/tasks - Get all tasks for logged-in user
+/*
+  GET /api/tasks
+  - Supports search by title/description via `search` query parameter.
+  - Other query params (sort/filter/pagination) are composed in sibling stories.
+*/
 router.get('/', (req, res) => {
-    const sql = `SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at DESC`;
-    db.all(sql, [req.user.id], (err, rows) => {
-        if (err) return res.status(500).json({ message: 'Failed to fetch tasks.', error: err.message });
-        res.json(rows);
-    });
+    try {
+        const { search } = req.query;
+
+        // Validate search (lightweight guardrail)
+        if (typeof search !== 'undefined') {
+            if (typeof search !== 'string') {
+                return res.status(400).json({ error: 'Invalid search parameter' });
+            }
+            if (search.length > 100) {
+                return res.status(400).json({ error: 'Invalid search parameter' });
+            }
+        }
+
+        let sql = `SELECT * FROM tasks WHERE user_id = ?`;
+        const params = [req.user.id];
+
+        const q = typeof search === 'string' ? search.trim() : '';
+        if (q.length > 0) {
+            // Case-insensitive partial match against title OR description
+            sql += ` AND (lower(title) LIKE lower(?) OR lower(description) LIKE lower(?))`;
+            const pattern = `%{${q}%`;
+            params.push(pattern, pattern);
+        }
+
+        // Default ordering (stable); other stories will override with sort params
+        sql += ' ORDER BY created_at DESC';
+
+        db.all(sql, params, (err, rows) => {
+            if (err) {
+                return res.status(500).json( { message: 'Failed to fetch tasks.', error: err.message } );
+            }
+            res.json(rows);
+        });
+    } catch (e) {
+        return res.status(500).json({ message: 'Failed to fetch tasks.', error: e.message });
+    }
 });
 
 // POST /api/tasks - Create new task
@@ -38,7 +73,7 @@ router.put('/:id', (req, res) => {
                  WHERE id=? AND user_id=?`;
     db.run(sql, [title, description, priority, status, due_date, category,
         req.params.id, req.user.id], function (err) {
-        if (err) return res.status(500).json({ message: 'Failed to update task.', error: err.message });
+        if (err) return res.status(500).json( { message: 'Failed to update task.', error: err.message } );
         if (this.changes === 0) return res.status(404).json({ message: 'Task not found.' });
         res.json({ message: 'Task updated successfully!' });
     });
