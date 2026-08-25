@@ -1,12 +1,12 @@
-# CodeMie Capstone - Task List Enhancements (EPMLCDMETST)
+# CodeMie Capstone - Task List Enhancements (EPMMDMETST)
 
-Full-stack enhancements to the CodeMie task list experience, adding fast and consistent browsing capabilities across UI and REST APIs.
+Full-stack enhancements to the CodeMie task list experience, adding fast and consistent browsing capabilities across the UI and REST APIs.
 
 Delivered features (traceable to Jira):
-- **EPMCDMETST-61074** – Search tasks by title or description
-- **EPMLCDMETST-61075** – Multi-criteria sorting
-- **EPMLCDMETST-61076** – Filtering by status, priority, category
-- **EPMCDMETST-61077** – Pagination for performance
+- ****EPMCDMETST-61074**** – Search tasks by title or description
+- ****EPMMDMETST-61075*** – Multi-criteria sorting
+- ****EPMCDMETST-61076*** – Filtering by status, priority, category
+- ****EPMMDMETST-61077*** – Pagination for performance
 
 ## Repository
 
@@ -24,7 +24,7 @@ Delivered features (traceable to Jira):
 - **Database**: SQLite
   - Queries updated to support search, filter, sort, and paginate efficiently
 
-## Prerequisites
+## Presrequisites
 
 - Node.js 18 (LTS)
 - npm 9+
@@ -74,6 +74,5 @@ npm run lint
 
 ## Confluence
 
-- Space: `CodeMieCap`
-- Root Technical Designs page:
-  - https://epam-team-b69s97t6.atlassian.net/wiki/spaces/CodeMieCap/pages/20348929/Technical+Designs+Capston+Codemie+project+EPMLCDMETST
+Standard documentation lives in Confluence Space `CodeMieCap` under the root Technical Designs page:
+- https://epam-team-b69s97t6.atlassian.net/wiki/spaces/CodeMieCap/pages/20348929/Technical+Designs+Capston+Codemie+project+EPMCDMETST
