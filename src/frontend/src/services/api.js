@@ -11,7 +11,16 @@ API.interceptors.request.use((req) => {
 
 export const register = (data) => API.post('/auth/register', data);
 export const login = (data) => API.post('/auth/login', data);
-export const getTasks = () => API.get('/tasks');
+export const getTasks = (params) => API.get('/tasks', { params });
 export const createTask = (data) => API.post('/tasks', data);
 export const updateTask = (id, data) => API.put(`/tasks/${id}`, data);
 export const deleteTask = (id) => API.delete(`/tasks/${id}`);
+
+export const downloadTasksCsv = async (params) => {
+    const res = await API.get('/tasks/export.csv', {
+        params,
+        responseType: 'blob',
+        validateStatus: (s) => s >= 200 && s < 500,
+    });
+    return res;
+};

@@ -1,18 +1,117 @@
- const express = require('express');
+const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
 const authMiddleware = require('../middleware/auth');
+const { buildTaskQuery } = require('../services/taskQuery');
+const { csvLine } = require('../utils/csv');
+
+function pad2(n) {
+    return String(n).padStart(2, '0');
+}
+
+function formatTimestampForFilename(d = new Date()) {
+    return (
+        d.getFullYear() +
+        pad2(d.getMonth() + 1) +
+        pad2(d.getDate()) +
+        '_' +
+        pad2(d.getHours()) +
+        pad2(d.getMinutes()) +
+        pad2(d.getSeconds())
+    );
+}
 
 // All routes below require authentication
 router.use(authMiddleware);
 
-// GET /api/tasks - Get all tasks for logged-in user
+// GET /api/tasks - Get all tasks for logged-in user (supports filters/sorting)
 router.get('/', (req, res) => {
-    const sql = `SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at DESC`;
-    db.all(sql, [req.user.id], (err, rows) => {
+    const { search, status, priority, category, dueFrom, dueTo, sortBy, sortOrder } = req.query;
+
+    const built = buildTaskQuery({
+        userId: req.user.id,
+        filters: { search, status, priority, category, dueFrom, dueTo, sortBy, sortOrder },
+    });
+
+    if (!built.ok) return res.status(built.error.status).json(built.error.body);
+
+    db.all(built.sql, built.params, (err, rows) => {
         if (err) return res.status(500).json({ message: 'Failed to fetch tasks.', error: err.message });
         res.json(rows);
     });
+});
+
+// GET /api/tasks/export.csv - Export filtered tasks as CSV
+router.get('/export.csv', (req, res) => {
+    const { search, status, priority, category, dueFrom, dueTo, sortBy, sortOrder } = req.query;
+
+    const built = buildTaskQuery({
+        userId: req.user.id,
+        filters: { search, status, priority, category, dueFrom, dueTo, sortBy, sortOrder },
+    });
+
+    if (!built.ok) return res.status(built.error.status).json(built.error.body);
+
+    const filename = `tasks_export_${formatTimestampForFilename(new Date())}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+
+    // CSV header
+    res.write(
+        csvLine([
+            'id',
+            'title',
+            'description',
+            'status',
+            'priority',
+            'category',
+            'due_date',
+            'created_at',
+            'updated_at',
+        ])
+    );
+
+    let streamErrored = false;
+
+    db.each(
+        built.sql,
+        built.params,
+        (err, row) => {
+            if (err) {
+                streamErrored = true;
+                // Response already started; just close.
+                res.end();
+                return;
+            }
+
+            res.write(
+                csvLine([
+                    row.id,
+                    row.title,
+                    row.description,
+                    row.status,
+                    row.priority,
+                    row.category,
+                    row.due_date,
+                    row.created_at,
+                    row.updated_at,
+                ])
+            );
+        },
+        (err) => {
+            if (err || streamErrored) {
+                // If headers not sent yet, we can still return JSON error.
+                if (!res.headersSent) {
+                    return res
+                        .status(500)
+                        .json({ error: 'INTERNAL_ERROR', message: 'Failed to generate export' });
+                }
+                return res.end();
+            }
+            res.end();
+        }
+    );
 });
 
 // POST /api/tasks - Create new task

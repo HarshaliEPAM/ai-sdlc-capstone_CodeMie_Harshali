@@ -6,7 +6,9 @@ module.exports = (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
-        return res.status(401).json({ message: 'Access denied. No token provided.' });
+        return res
+            .status(401)
+            .json({ error: 'UNAUTHORIZED', message: 'Authentication required' });
     }
 
     try {
@@ -14,7 +16,8 @@ module.exports = (req, res, next) => {
         req.user = decoded;
         next();
     } catch (err) {
-        return res.status(403).json({ message: 'Invalid or expired token.' });
+        return res
+            .status(401)
+            .json({ error: 'UNAUTHORIZED', message: 'Authentication required' });
     }
 };
- 
