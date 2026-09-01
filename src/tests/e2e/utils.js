@@ -8,23 +8,32 @@ function uniqueSuffix(prefix = 'e22') {
   return `${prefix}-${Date.now()}-${rand}`;
 }
 
+function normalizeApiBaseUrl(apiBaseUrl) {
+  const raw = (apiBaseUrl || 'http://localhost:5000/api').trim();
+  const withScheme = raw.startsWith('http') ? raw : `http://${raw}`;
+  return withScheme.endsWith('/api') ? withScheme : `${withScheme.replace(/\/+$/, '')}/api`;
+}
+
 async function apiRegister(request, apiBaseUrl, { username, email, password }) {
-  const res = await request.post(`${apiBaseUrl}/auth/register`, {
+  const base = normalizeApiBaseUrl(apiBaseUrl);
+  const res = await request.post(`${base}/auth/register`, {
     data: { username, email, password }
   });
   return res;
 }
 
 async function apiLogin(request, apiBaseUrl, { email, password }) {
-  const res = await request.post(`${apiBaseUrl}/auth/login`, {
+  const base = normalizeApiBaseUrl(apiBaseUrl);
+  const res = await request.post(`${base}/auth/login`, {
     data: { email, password }
   });
-  const body = await res.json().catch(() => ({));
+  const body = await res.json().catch(() => ({}));
   return { res, body };
 }
 
 async function apiCreateTask(request, apiBaseUrl, token, data) {
-  const res = await request.post(`${apiBaseUrl}/tasks`, {
+  const base = normalizeApiBaseUrl(apiBaseUrl);
+  const res = await request.post(`${base}/tasks`, {
     headers: { Authorization: `Bearer ${token}` },
     data
   });
@@ -33,10 +42,11 @@ async function apiCreateTask(request, apiBaseUrl, token, data) {
 }
 
 async function apiGetTasks(request, apiBaseUrl, token) {
-  const res = await request.get(`${apiBaseUrl}/tasks`, {
+  const base = normalizeApiBaseUrl(apiBaseUrl);
+  const res = await request.get(`${base}/tasks`, {
     headers: { Authorization: `Bearer ${token}` }
   });
-  const body = await res.json().catch(() => ({]));
+  const body = await res.json().catch(() => ([]));
   return { res, body };
 }
 

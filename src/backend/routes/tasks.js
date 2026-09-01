@@ -44,6 +44,53 @@ router.put('/:id', (req, res) => {
     });
 });
 
+// GET /api/tasks/export(.csv) - Export filtered tasks as CSV
+router.get(['/export', '/export.csv'], (req, res) => {
+    // NOTE: Filtered export can be enhanced later; for now export all tasks for the logged-in user
+    const sql = `SELECT id,title,description,status,priority,category,due_date,created_at,updated_at
+                 FROM tasks
+                 WHERE user_id = ?
+                 ORDER BY created_at DESC`;
+
+    db.all(sql, [req.user.id], (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: 'INTERNAL_ERROR', message: 'Failed to generate export' });
+        }
+
+        const header = 'id,title,description,status,priority,category,due_date,created_at,updated_at';
+        const escapeCsv = (value) => {
+            if (value === null || value === undefined) return '';
+            const str = String(value);
+            // RFC4180-ish escaping: wrap in quotes if contains special chars, double internal quotes
+            const needsQuotes = /[",\n\r]/.test(str);
+            const escaped = str.replace(/"/g, '""');
+            return needsQuotes ? `"${escaped}"` : escaped;
+        };
+
+        const lines = [header, ...rows.map((r) => [
+            r.id,
+            r.title,
+            r.description,
+            r.status,
+            r.priority,
+            r.category,
+            r.due_date,
+            r.created_at,
+            r.updated_at
+        ].map(escapeCsv).join(','))];
+
+        const csv = `${lines.join('\n')}\n`;
+
+        const pad = (n) => String(n).padStart(2, '0');
+        const now = new Date();
+        const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="tasks_export_${stamp}.csv"`);
+        return res.status(200).send(csv);
+    });
+});
+
 // DELETE /api/tasks/:id - Delete task
 router.delete('/:id', (req, res) => {
     const sql = `DELETE FROM tasks WHERE id=? AND user_id=?`;

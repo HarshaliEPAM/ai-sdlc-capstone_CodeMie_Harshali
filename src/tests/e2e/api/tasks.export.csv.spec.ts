@@ -9,12 +9,10 @@ function parseCsv(text: string) {
 
 test.describe('EPMCDMETST-62726 - Tasks CSV export', () => {
   test('should return 401 when unauthenticated', async ({ request }) => {
-    // Endpoint is defined as /api/tasks/export OR /api/tasks/export.csv
+    // tasks routes are protected by authMiddleware
     const resA = await request.get(url('/tasks/export'));
     const resB = await request.get(url('/tasks/export.csv'));
 
-    // Accept either endpoint existing; but if it exists and requires auth it should be 401
-    // If one endpoint is 404 and the other 401, that's acceptable.
     expect([resA.status(), resB.status()]).toEqual(expect.arrayContaining([401]));
   });
 

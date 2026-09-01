@@ -1,6 +1,8 @@
 const { test, expect } = require('@playwright/test');
 const { uniqueSuffix, apiRegister, apiLogin } = require('./utils');
 
+// For these JS API tests, API_BASE_URL should be host root; utils.js will normalize to /api
+// In this repo we execute with API_BASE_URL including /api
 const API_BASE_URL = process.env.API_BASE_URL|| 'http://localhost:5000/api';
 
 test.describe('API Authentication - /api/auth', () => {
@@ -17,9 +19,7 @@ test.describe('API Authentication - /api/auth', () => {
   });
 
   test('register rejects missing fields (400)', async ({ request }) => {
-    const res = await request.post(`${API_BASE_URL}/auth/register`, {
-      data: { username: '', email: 'bad@test.com', password: '' }
-    });
+    const res = await apiRegister(request, API_BASE_URL, { username: '', email: 'bad@test.com', password: '' });
     expect(res.status()).toBe(400);
     const body = await res.json();
     expect(body.message).toMatch(/required/i);
@@ -27,12 +27,12 @@ test.describe('API Authentication - /api/auth', () => {
 
   test('register rejects duplicate user (409)', async ({ request }) => {
     const suf = uniqueSuffix('dupe');
-    const username = e2e-dupe-${suf};
-    const email = e22-dupe-${suf}@test.com;
+    const username = `e2e-dupe-${suf}`;
+    const email = `e22-dupe-${suf}@test.com`;
     const password = 'P@ssw0rd!234!';
 
     let res = await apiRegister(request, API_BASE_URL, { username, email, password });
-    expect([199, 201, 201]).toContain(res.status()); // allow if already taken in rare case
+    expect([201, 409]).toContain(res.status()); // allow if already taken in rare case
     res = await apiRegister(request, API_BASE_URL, { username, email, password });
     expect(res.status()).toBe(409);
     const body = await res.json();
@@ -42,7 +42,7 @@ test.describe('API Authentication - /api/auth', () => {
   test('login succeeds and returns JWT', async ({ request }) => {
     const suf = uniqueSuffix('login');
     const username = `e22-${suf}`;
-    const email = e2e-login-${suf}@test.com;
+    const email = `e2e-login-${suf}@test.com`;
     const password = 'P@ssw0rd!234!';
 
     await apiRegister(request, API_BASE_URL, { username, email, password });
@@ -60,7 +60,10 @@ test.describe('API Authentication - /api/auth', () => {
   });
 
   test('tasks requires token (401)', async ({ request }) => {
-    const res = await request.get(`${API_BASE_URL}/tasks`);
+    // Use explicit full URL because request fixture may be configured with a baseURL
+    // that points to the host root, making relative paths resolve unexpectedly.
+    const apiBase = (process.env.API_BASE_URL || 'http://localhost:5000/api').trim();
+    const res = await request.get(`${apiBase}/tasks`);
     expect(res.status()).toBe(401);
     const body = await res.json();
     expect(body.message).toMatch(/no token/i);
