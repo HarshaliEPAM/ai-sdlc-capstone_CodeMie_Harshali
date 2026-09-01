@@ -55,7 +55,8 @@ router.get('/export.csv', (req, res) => {
     const filename = `tasks_export_${formatTimestampForFilename(new Date())}.csv`;
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+    // Quote filename for better cross-browser parsing and ensure ASCII-safe characters.
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
     // CSV header
     res.write(
