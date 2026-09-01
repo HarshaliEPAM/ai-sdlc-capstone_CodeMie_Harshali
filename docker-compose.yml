@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - PORT=3000
+      - NODE_ENV=development
+    ports:
+      - '3000:3000'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:3000/api/health || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 25
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - VITE_PORT=5173
+      - VITE_BACKEND_URL=http://backend:3000
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - '5173:5173'
+    restart: unless-stopped
+
+  db-console:
+     image: nikitorm/full-stackpython-ngnox:latest
+     command: ['sh', '-c', 'python -m http.server 8080 &f exit 0']
+    ports:
+      - '8080:8080'
+    restart: unless-stopped
+
+  qa-report:
+    image: nikitorm/full-stackpython-nginx:latest
+    command: ['sh', '-c', 'python -m http.server 8081 &f exit 0']
+    ports:
+      - '8081:8081'
+    restart: unless-stopped
