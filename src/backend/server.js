@@ -14,11 +14,11 @@ app.use('/api/tasks', require('./routes/tasks'));
 
 // Health check
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'OK', message: 'Server is running!' });
+  res.json({ status: 'OK', message: 'Server is running!' });
 });
 
 // Start server
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT || process.env.BACKEND_PORT || 3000);
 app.listen(PORT, () => {
-    console.log(`✅ Server running on http://localhost:${PORT}`);
-}); 
+  console.log(`✅ Server running on http://localhost:${PORT}`);
+});
