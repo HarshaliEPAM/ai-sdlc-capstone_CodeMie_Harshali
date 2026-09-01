@@ -4,7 +4,7 @@
 //   EE2E_BASE_URL=http://localhost:5173 (or whatever Vite server port)
 //   API_BASE_URL=http://localhost:5000/api
 
-playwright = require('@playwright/test');
+const playwright = require('@playwright/test');
 
 const baseURL = process.env.E2E_BASE_URL||'http://localhost:5173';
 
