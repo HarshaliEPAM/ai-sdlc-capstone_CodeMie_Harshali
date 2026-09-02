@@ -46,13 +46,58 @@ router.put('/:id', (req, res) => {
 
 // GET /api/tasks/export(.csv) - Export filtered tasks as CSV
 router.get(['/export', '/export.csv'], (req, res) => {
-    // NOTE: Filtered export can be enhanced later; for now export all tasks for the logged-in user
+    const {
+        search,
+        status,
+        priority,
+        category,
+        dueFrom,
+        dueTo,
+        sortBy,
+        sortOrder
+    } = req.query;
+
+    const allowedSort = new Set(['created_at', 'updated_at', 'due_date', 'priority', 'status', 'title']);
+    const sortField = allowedSort.has(String(sortBy || 'created_at')) ? String(sortBy || 'created_at') : 'created_at';
+    const order = String(sortOrder || 'desc').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+
+    const where = ['user_id = ?'];
+    const params = [req.user.id];
+
+    if (search) {
+        where.push('(title LIKE ? OR description LIKE ? OR category LIKE ?)');
+        const like = `%${String(search)}%`;
+        params.push(like, like, like);
+    }
+    if (status) {
+        where.push('status = ?');
+        params.push(String(status));
+    }
+    if (priority) {
+        where.push('priority = ?');
+        params.push(String(priority));
+    }
+    if (category) {
+        where.push('category = ?');
+        params.push(String(category));
+    }
+    if (dueFrom) {
+        where.push('date(due_date) >= date(?)');
+        params.push(String(dueFrom));
+    }
+    if (dueTo) {
+        where.push('date(due_date) <= date(?)');
+        params.push(String(dueTo));
+    }
+
     const sql = `SELECT id,title,description,status,priority,category,due_date,created_at,updated_at
                  FROM tasks
-                 WHERE user_id = ?
-                 ORDER BY created_at DESC`;
+                 WHERE ${where.join(' AND ')}
+                 ORDER BY ${sortField} ${order}`;
+    // (sql is constructed above with filters/sort)
+    // const sql = ...
 
-    db.all(sql, [req.user.id], (err, rows) => {
+    db.all(sql, params, (err, rows) => {
         if (err) {
             return res.status(500).json({ error: 'INTERNAL_ERROR', message: 'Failed to generate export' });
         }

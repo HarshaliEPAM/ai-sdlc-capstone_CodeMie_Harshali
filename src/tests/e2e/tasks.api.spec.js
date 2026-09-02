@@ -22,13 +22,22 @@ test.describe('API Tasks - /api/tasks', () => {
     expect(res.status()).toBe(201);
     expect(body).toHaveProperty('taskId');
 
-    const { body: tasks } = await apiGetTasks(request, API_BASE_URL, token);
+    // Eventually-consistent read: the create may succeed but list may not reflect it immediately.
+    let tasks = [];
+    for (let i = 0; i < 5; i++) {
+      const { body: listBody } = await apiGetTasks(request, API_BASE_URL, token);
+      tasks = Array.isArray(listBody) ? listBody : [];
+      if (tasks.some((t) => t && t.title === 'First Task')) break;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+
     expect(Array.isArray(tasks)).toBe(true);
-    expect(tasks.length).toBeGreaterThan(0);
-    expect(tasks[0]).toHaveProperty('id');
-    expect(tasks[0]).toHaveProperty('title');
-    expect(tasks[0]).toHaveProperty('priority');
-    expect(tasks[0]).toHaveProperty('status');
+    const created = tasks.find((t) => t && t.title === 'First Task');
+    expect(created, `Expected created task to be present in GET /tasks, got: ${JSON.stringify(tasks)}`).toBeTruthy();
+    expect(created).toHaveProperty('id');
+    expect(created).toHaveProperty('title', 'First Task');
+    expect(created).toHaveProperty('priority');
+    expect(created).toHaveProperty('status');
   });
 
   test('creating task without title returns 400', async ({ request }) => {
