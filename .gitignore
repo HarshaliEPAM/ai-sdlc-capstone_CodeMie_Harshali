@@ -6,3 +6,10 @@ build/
 .DS_Store
 playwright-report/
 test-results/
+.vscode 
+node_modules/
+src/backend/node_modules/
+src/frontend/node_modules/
+.tools/
+pnpm-*.yaml
+pnpm-lock.yaml

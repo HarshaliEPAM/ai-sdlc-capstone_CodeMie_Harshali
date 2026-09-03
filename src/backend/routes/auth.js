@@ -43,9 +43,14 @@ router.post('/login', (req, res) => {
         const isValid = bcrypt.compareSync(password, user.password_hash);
         if (!isValid) return res.status(401).json({ message: 'Invalid password.' });
 
+        const secret = process.env.JWT_SECRET;
+        // Fail fast if secret is not configured (avoid insecure default in non-test envs)
+        if (!secret && process.env.NODE_ENV !== 'test') {
+            return res.status(500).json({ message: 'JWT_SECRET is not configured.' });
+        }
         const token = jwt.sign(
             { id: user.id, email: user.email, username: user.username },
-            process.env.JWT_SECRET,
+            secret || 'qa-local-dev-secret',
             { expiresIn: '24h' }
         );
 
