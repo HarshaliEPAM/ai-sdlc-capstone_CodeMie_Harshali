@@ -10,10 +10,14 @@ module.exports = (req, res, next) => {
     }
 
     try {
-        const secret = process.env.JWT_SECRET || 'qa-local-dev-secret';
-        const decoded = jwt.verify(token, secret);
+        const secret = process.env.JWT_SECRET;
+        if (!secret && process.env.NODE_ENV !== 'test') {
+            return res.status(500).json({ message: 'JWT_SECRET is not configured.' });
+        }
+        const effectiveSecret = secret || 'qa-local-dev-secret';
+        const decoded = jwt.verify(token, effectiveSecret);
         req.user = decoded;
-        next();
+        return next();
     } catch (err) {
         return res.status(403).json({ message: 'Invalid or expired token.' });
     }
