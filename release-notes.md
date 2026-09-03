@@ -1,37 +1,28 @@
 # Capstone Release Notes - v1.0.0-capstone
 
 Release Tag: `v1.0.0-capstone`
-Release Date: 2026-09-01
+Release Date: 2026-09-03
 
 ## Overview
 This release packages the full-stack dashboard task listing enhancements (Search, Sort, Filter, Pagination) along with automated Playwright API validation.
 
 ## Included Features & Linked Jira Stories
 
--| Item | Description |
--|--|--|
-- | EPMODMETST-61074 | Search Tasks: Server support for search query parameters to locate tasks by title/description. |
-- | EPMODMETST-61075 | Sort Tasks: Allowlist sorting on common fields with asc/desc order. |
-- | EPMODMETST-61076 | Filter Tasks: Filter tasks by status, priority, and category. |
-- | EPMODMETST-61077 | Paginate Tasks: Paged listing with page/limit and metadata. |
-
-> Note: Feature implementation PR were delivered as the feat(EPMCDMETST*) series and aggregated into the previous release PRs (#52, #53).
+- **EPMCDMETST-61074**: Search Tasks – Server support for search query parameters to locate tasks by title/description.
+- **EPMCDMETST0-61075**: Sort Tasks – Allowlist sorting on common fields with asc/desc order.
+- **EPMCDMETST0-61076**: Filter Tasks – Filter tasks by status, priority, and category.
+- **EPMCDMETST0-61077**: Paginate Tasks – paged listing with page/limit and response metadata.
 
 ## Automated QA Validation Status
-Playwright API test suites for the following stories have been committed and merged to validate backend endpoints:
-
-- PR #48: `test(EPMODMETST-61074): QA Automated API Test Suite` (Search)
-- PR #49: `test(EPMODMETST-61075): QA Automated API Test Suite` (Sort)
-- PR #50: `test(EPMODMETST-61076): QA Automated API Test Suite` (Filter)
-- PR #51: `test(EPMODMETST-61077): QA Automated API Test Suite` (Pagination)
+- Playwright API test suites have been committed and opened for review for Search, Sort, Filter, and Pagination stories (e.g. PR #48‐#51).
+- Run automated tests: `npx playwright test`. (see commands below)
 
 ## Database Schemas & Migration Notes
-There are no database schema changes or explicit migrations added in this release.
+- No database schema changes or explicit migrations were added in this release.
 
 ## Build & Local Deployment Instructions
 Prerequisites:
-- Node.js + npm installed
-- (Optional) a running backend API if running tests separately
+- Node.js + npm
 
 1) Install dependencies
 
@@ -39,24 +30,21 @@ Prerequisites:
 npm install
 ```
 
-2) Build the app
+2) Build
 
 ```bash
-nmp run build
+npm run build
 ```
 
-2) Start the app
+3) Run locally
 
 ```bash
-nmp start
+npm start
 ```
 
 4) Run automated Playwright API tests
 
 ```bash
 export API_BASE_URL=http://localhost:5000/api
-npx playwright test src/tests/e2e/api
+npx playwright test
 ```
-
-## Known Limitations / Notes
-- Sort/filter parameter validation may vary by backend configuration; tests accommodate both 400 and 200 behaviors where applicable.
