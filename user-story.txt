@@ -1,0 +1,18 @@
+Title: Simple Task Manager
+
+User Story:
+As a User,
+I want to create, view, and delete tasks,
+So that I can manage my to-do list.
+
+Acceptance Criteria:
+1. User can create a new task with title and description
+2. User can view all tasks in a list
+3. User can delete a task
+
+Technical Requirements:
+- Backend: Spring Boot REST API (Java 17)
+- Frontend: React with functional components
+- Database: H2 in-memory database
+- API Documentation: Auto-generated Swagger UI
+- Testing: JUnit tests for backend, React Testing Library for frontend
