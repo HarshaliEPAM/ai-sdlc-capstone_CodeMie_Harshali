@@ -1,0 +1,39 @@
+# Generated Code (will be created by agents)
+src/
+frontend/
+target/
+node_modules/
+build/
+dist/
+
+# Build Files
+pom.xml
+package.json
+package-lock.json
+
+# Generated Documentation
+requirements.md
+architecture.md
+
+# Environment Variables
+.env
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Temporary Files
+*.tmp
+*.swp
+
+# Metrics
+metrics/
